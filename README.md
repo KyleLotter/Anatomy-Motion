@@ -4,6 +4,9 @@ A motion-first 3D explorer of human anatomy that runs in the browser.
 
 **Educational, not medical advice.**
 
+## Vercel Link:
+https://anatomy-motion.vercel.app/
+
 ## What it does
 
 - Two bodies, male and female, drawn as a point cloud with hairline organs.
