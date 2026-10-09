@@ -1,0 +1,9 @@
+# Original model files (about 243 MB). The app only needs the compressed copies in assets/models/opt/.
+# To rebuild the copies, re-download the originals: see assets/models/ATTRIBUTION.md.
+assets/models/*.glb
+assets/models/female/
+
+# Test screenshots and tool output
+qa/shots/
+.playwright-mcp/
+node_modules/

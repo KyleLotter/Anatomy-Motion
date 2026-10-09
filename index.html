@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09100e" id="theme-color">
+  <meta name="color-scheme" content="dark light">
+  <title>Anatomy Motion</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 fill=%27%2309100e%27/%3E%3Ccircle cx=%278%27 cy=%278%27 r=%274%27 fill=%27%23f6641b%27/%3E%3C/svg%3E">
+  <meta name="description" content="A motion-first explorer of human anatomy. Educational, not medical advice.">
+  <script>
+    // Resolve the theme before first paint. One switching mechanism: the data-theme attribute.
+    (function () {
+      var saved = null; try { saved = localStorage.getItem('anatomy-theme'); } catch (e) {}
+      var q = new URLSearchParams(location.search).get('theme');
+      var t = q || saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oxanium:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <!-- Three.js pinned to 0.170.0. Core from cdnjs; loader add-ons (not hosted on cdnjs) from jsDelivr at the same version. -->
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.170.0/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+<div id="app" data-view="body" data-hud="out" data-ready="false">
+  <div class="field" aria-hidden="true"></div>
+  <div class="rings" id="rings" aria-hidden="true">
+    <svg viewBox="-200 -200 400 400"><circle r="118"/><circle r="150" class="rings__ticks"/><circle r="196"/></svg>
+  </div>
+
+  <canvas id="scene" tabindex="0" aria-label="3D model of the body. Drag or use the arrow keys to rotate, plus and minus to zoom. Use the section buttons to select an organ."></canvas>
+
+  <div class="topscrim" aria-hidden="true"></div>
+
+  <div class="ruler" id="ruler" aria-hidden="true">
+    <span class="ruler__label ruler__label--top label" id="ruler-top"></span>
+    <span class="ruler__label ruler__label--bottom label">0</span>
+  </div>
+
+  <header class="topbar">
+    <div class="status">
+      <span class="status__dot" aria-hidden="true"></span>
+      <span class="label" id="status" role="status">Loading</span>
+      <span class="status__strip" id="strip" aria-hidden="true"></span>
+    </div>
+    <div class="topbar__actions">
+      <button class="textbtn" id="search-btn" type="button" aria-haspopup="dialog" aria-keyshortcuts="/">Search</button>
+      <button class="textbtn" id="tours-btn" type="button" aria-haspopup="dialog">Tours</button>
+      <button class="textbtn" id="reset-btn" type="button" aria-keyshortcuts="Home">Reset</button>
+      <button class="textbtn only-wide" id="body-btn" type="button">Female</button>
+      <button class="textbtn only-wide" id="theme-btn" type="button">Light</button>
+      <button class="textbtn only-wide" id="credits-btn" type="button" aria-haspopup="dialog">Credits</button>
+      <button class="textbtn only-narrow" id="menu-btn" type="button" aria-haspopup="dialog">More</button>
+    </div>
+    <div class="tape" aria-hidden="true"><div class="tape__track" id="tape"></div><i class="tape__mark"></i></div>
+  </header>
+
+  <div class="gauge" aria-hidden="true">
+    <svg viewBox="-56 -56 112 112">
+      <circle r="52" class="gauge__ring"/>
+      <circle r="38" class="gauge__ring gauge__ring--ticks"/>
+      <circle r="22" class="gauge__ring"/>
+      <g id="gauge-needle"><line x1="0" y1="-22" x2="0" y2="-52"/><circle cx="0" cy="-52" r="3.5" class="gauge__dot"/></g>
+      <circle r="38" class="gauge__zoom" id="gauge-zoom" pathLength="100"/>
+    </svg>
+    <p class="gauge__read"><span class="label">Orbit</span><span class="gauge__num" id="gauge-az">020°</span><span class="label" id="gauge-zoom-text">Zoom 1.0×</span></p>
+  </div>
+
+  <div class="ports" aria-hidden="true">
+    <p class="label"><span>Parts loaded</span> <span id="ports-count">00/45</span></p>
+    <div class="ports__grid" id="ports"></div>
+    <p class="label ports__key"><i class="ports__cell is-loaded"></i> scan <i class="ports__cell is-loaded is-standin"></i> stylised</p>
+  </div>
+
+  <div class="leader" id="leader" aria-hidden="true"><i class="leader__line" id="leader-line"></i><i class="leader__dot" id="leader-dot"></i><i class="leader__end" id="leader-end"></i></div>
+
+  <div class="tag" id="tag" aria-hidden="true">
+    <i class="tag__line" id="tag-line"></i>
+    <div class="tag__box" id="tag-box"><span class="tag__n" id="tag-n">01</span><span class="tag__name" id="tag-name"></span><span class="tag__flag" id="tag-flag">Stylised</span></div>
+  </div>
+
+  <section class="panel" id="panel" aria-labelledby="title" inert>
+    <button class="panel__grab" id="grab" type="button" aria-expanded="false" aria-controls="panel-scroll">
+      <span class="label" id="kicker">Section</span><i class="panel__handle" aria-hidden="true"></i><span class="label" id="grab-text">Details</span>
+    </button>
+    <div class="panel__head" id="panel-head">
+      <h1 class="title" id="title"><span class="title__echo title__echo--a" aria-hidden="true"></span><span class="title__echo title__echo--b" aria-hidden="true"></span><span class="title__text" id="title-text"></span></h1>
+      <p class="label title__kicker" id="kicker-2"></p>
+      <div class="tour" id="tour" hidden>
+        <p class="label tour__meta"><span id="tour-name"></span><span id="tour-step"></span></p>
+        <div class="tour__bar" id="tour-bar" aria-hidden="true"></div>
+        <p class="body tour__text" id="tour-text"></p>
+        <div class="tour__nav">
+          <button class="chip chip--small" type="button" id="tour-prev">Back</button>
+          <button class="chip chip--small tour__next" type="button" id="tour-next">Next</button>
+          <button class="chip chip--small" type="button" id="tour-end" aria-label="End tour">End</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel__scroll" id="panel-scroll">
+      <div class="panel__col panel__col--data">
+        <div class="readout rise" style="--i:1">
+          <div class="readout__text">
+            <span class="readout__label" id="readout-label">Pulse</span>
+            <span class="readout__value"><span id="readout-value">72</span><span class="readout__unit" id="readout-unit">bpm</span></span>
+          </div>
+          <canvas class="readout__trace" id="readout-trace" width="176" height="56" aria-hidden="true"></canvas>
+          <p class="label readout__note" id="readout-note"></p>
+        </div>
+        <div class="block rise cut" id="cut-block" style="--i:2">
+          <div class="cut__head"><h2 class="heading" id="cut-title">Cutaway</h2><output class="label" id="cut-out" for="cut">Off</output></div>
+          <input class="cut__range" type="range" id="cut" min="0" max="90" step="1" value="0" aria-labelledby="cut-title">
+          <div class="cut__axes" id="cut-axes" role="group" aria-label="Cut from">
+            <button class="chip chip--small" type="button" data-axis="z" aria-pressed="true">Front</button>
+            <button class="chip chip--small" type="button" data-axis="x" aria-pressed="false">Side</button>
+            <button class="chip chip--small" type="button" data-axis="y" aria-pressed="false">Top</button>
+          </div>
+        </div>
+        <div class="block rise" id="stats-block" style="--i:3">
+          <h2 class="heading">Stats</h2>
+          <dl class="stats" id="stats"></dl>
+        </div>
+        <div class="block rise" id="phys-block" style="--i:4">
+          <h2 class="heading">Physiology</h2>
+          <ol class="phys" id="phys"></ol>
+        </div>
+      </div>
+      <div class="panel__col panel__col--text">
+        <div class="block rise" id="about-block" style="--i:2">
+          <h2 class="heading">About</h2>
+          <p class="body" id="about"></p>
+        </div>
+        <div class="block rise" id="parts-block" style="--i:3">
+          <h2 class="heading">Parts</h2>
+          <div class="chips" id="subs" role="group" aria-label="Parts in this section"></div>
+          <p class="body body--note" id="sub-note"></p>
+        </div>
+        <div class="block rise" id="detail-block" style="--i:4" hidden>
+          <h2 class="heading" id="detail-title"></h2>
+          <div class="chips" id="details" role="group" aria-labelledby="detail-title"></div>
+          <p class="body body--note body--short" id="detail-note"></p>
+        </div>
+        <p class="label standin-note rise" id="standin-note" style="--i:5"></p>
+      </div>
+    </div>
+  </section>
+
+  <p class="hint label" id="hint">Select an organ, or pick a section</p>
+
+  <footer class="dock">
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+    <p class="ticker label"><span id="wordmark">Anatomy Motion</span><span class="ticker__note">Educational, not medical advice</span></p>
+  </footer>
+
+  <div class="brackets" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <p class="sr-only" aria-live="polite" id="live"></p>
+
+  <dialog class="credits finder" id="finder" aria-labelledby="finder-title">
+    <h2 class="heading" id="finder-title">Find a part</h2>
+    <input class="finder__input" id="finder-input" type="search" inputmode="search" enterkeyhint="go" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type a name, for example tibia" aria-controls="finder-list" aria-describedby="finder-count">
+    <p class="label" id="finder-count" role="status"></p>
+    <div class="finder__list" id="finder-list"></div>
+    <form method="dialog"><button class="textbtn" type="submit">Close</button></form>
+  </dialog>
+
+  <dialog class="credits" id="menu" aria-labelledby="menu-title">
+    <h2 class="heading" id="menu-title">More</h2>
+    <div class="tourlist menu__list">
+      <button type="button" id="menu-body"><strong>Female body</strong></button>
+      <button type="button" id="menu-theme"><strong>Light theme</strong></button>
+      <button type="button" id="menu-credits"><strong>Credits and sources</strong></button>
+    </div>
+    <form method="dialog"><button class="textbtn" type="submit">Close</button></form>
+  </dialog>
+
+  <dialog class="credits" id="tours" aria-labelledby="tours-title">
+    <h2 class="heading" id="tours-title">Guided tours</h2>
+    <p class="credits__lead">Each tour follows one process step by step. You set the pace.</p>
+    <div class="tourlist" id="tour-list"></div>
+    <form method="dialog"><button class="textbtn" type="submit">Close</button></form>
+  </dialog>
+
+  <dialog class="credits" id="credits" aria-labelledby="credits-title">
+    <h2 class="heading" id="credits-title">Credits and sources</h2>
+    <div class="credits__body">
+      <h3 class="label">3D models</h3>
+      <p>Organ models are from the <a href="https://github.com/hubmapconsortium/ccf-3d-reference-object-library" target="_blank" rel="noopener">Human Reference Atlas 3D Reference Object Library</a> (HuBMAP, male and female sets v1.2, mammary glands from v1.3), built from the Visible Human male and female datasets of the US National Library of Medicine. Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>
+      <p><strong>Modified from the originals:</strong> meshes were merged, simplified to between 2% and 100% of their triangles and compressed for the web, then drawn as points and lines.</p>
+      <h3 class="label">Stylised stand-ins, not from scans</h3>
+      <p>The library has no stomach, oesophagus, skull, ribs, arm bones or peripheral nerves. Those are simple hand-built shapes, drawn dashed and tagged “stylised”. Their size, position and paths are approximate.</p>
+      <p>The male and female bodies are scans of two different people, so organs differ in size and position between them. Stand-ins are stretched to fit each body.</p>
+      <p>Not included at all: arm and leg blood vessels, lymph vessels, muscles, and hand and foot bones. The female set has no urethra; the male set has no testes.</p>
+      <h3 class="label">Facts</h3>
+      <p>OpenStax <cite>Anatomy and Physiology 2e</cite>; NIDDK (kidneys, digestive system); American Heart Association (resting heart rate); Azevedo et al. 2009 (neuron count); Raichle &amp; Gusnard 2002 (brain energy use).</p>
+      <p>Pulse, breathing, filtration and brain-wave readouts are simulations inside normal resting ranges. They are not measurements.</p>
+      <p><strong>This is an educational illustration, not medical advice.</strong></p>
+    </div>
+    <form method="dialog"><button class="btn" type="submit" autofocus>Close</button></form>
+  </dialog>
+
+  <noscript><p class="fallback">This explorer needs JavaScript and WebGL.</p></noscript>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

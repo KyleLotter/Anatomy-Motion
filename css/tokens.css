@@ -1,0 +1,84 @@
+/* Design tokens. Colours are stored as sRGB hex because the WebGL scene reads them;
+   the OKLCH source of each value is in the trailing comment. Contrast figures: STYLE-BRIEF.md. */
+:root {
+  /* neutral ramp, hue 180 */
+  --teal-950: #09100e; /* oklch(0.165 0.012 180) */
+  --teal-900: #101917; /* oklch(0.205 0.014 180) */
+  --teal-800: #25312e; /* oklch(0.30 0.016 180) */
+  --teal-500: #6d7f7b; /* oklch(0.58 0.022 180) */
+  --teal-400: #899996; /* oklch(0.67 0.02 180) */
+  --teal-300: #b3c1be; /* oklch(0.80 0.016 180) */
+  --teal-100: #ebf2f0; /* oklch(0.955 0.008 180) */
+  --teal-50: #f7fbfa;  /* oklch(0.985 0.004 180) */
+  --teal-200: #ccd7d4; /* oklch(0.87 0.012 180) */
+  --teal-550: #748481; /* oklch(0.60 0.02 180) */
+  --teal-600: #566864; /* oklch(0.50 0.022 180) */
+  --teal-700: #3b4c48; /* oklch(0.40 0.022 180) */
+  --teal-920: #12201d; /* oklch(0.23 0.02 180) */
+  --mint-300: #86cebf; /* oklch(0.80 0.075 180) */
+  --mint-700: #277165; /* oklch(0.50 0.075 180) */
+  /* accent ramp, hue 40-52 */
+  --ember-300: #fd9c5d; /* oklch(0.78 0.14 52) */
+  --ember-500: #f6641b; /* oklch(0.68 0.195 42) */
+  --ember-600: #e0570f; /* oklch(0.63 0.185 42) */
+  --ember-700: #af400f; /* oklch(0.52 0.155 40) */
+
+  --color-bg-page: var(--teal-950);
+  --color-bg-surface: var(--teal-900);
+  --color-grid: var(--teal-800);
+  --color-line: var(--teal-500);
+  --color-text-primary: var(--teal-100);
+  --color-text-secondary: var(--teal-300);
+  --color-text-tertiary: var(--teal-400);
+  --color-signal: var(--mint-300);
+  --color-accent-solid: var(--ember-500);
+  --color-accent-text: var(--ember-300);
+  --color-on-accent: var(--teal-950);
+  --scrim-alpha: 92%; /* keeps label text at 4.5:1 or better even with pure white or black behind the scrim */
+
+  --font-display: "Oxanium", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --gutter: 16px;
+  --line-hair: 1px; --line-emph: 1.5px; --line-strong: 2px;
+  --grid-pitch: 24px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --press-scale: 0.97;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --topbar-h: 44px;
+  --tabs-h: 104px; /* two rows of 44 px tabs on small screens */
+  --ticker-h: 28px;
+  --dock-h: calc(var(--tabs-h) + var(--ticker-h) + var(--safe-bottom));
+}
+
+:root[data-theme="light"] {
+  --color-bg-page: var(--teal-100);
+  --color-bg-surface: var(--teal-50);
+  --color-grid: var(--teal-200);
+  --color-line: var(--teal-550);
+  --color-text-primary: var(--teal-920);
+  --color-text-secondary: var(--teal-700);
+  --color-text-tertiary: var(--teal-600);
+  --color-signal: var(--mint-700);
+  --color-accent-solid: var(--ember-600);
+  --color-accent-text: var(--ember-700);
+  --color-on-accent: var(--teal-950);
+}
+
+@media (min-width: 900px) {
+  :root { --gutter: 32px; --tabs-h: 56px; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --color-line: var(--teal-300); --color-text-tertiary: var(--teal-300); --scrim-alpha: 100%; }
+  :root[data-theme="light"] { --color-line: var(--teal-700); --color-text-tertiary: var(--teal-700); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --scrim-alpha: 100%; }
+}
